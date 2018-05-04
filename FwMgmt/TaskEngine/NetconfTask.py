@@ -6,8 +6,25 @@ from lxml import etree
 from .TaskEngine import Task
 
 class NetconfTask(Task):
+    """ NetconfTask is a Task relying on Netconf to update device configuration
+    """
 
     def __init__(self, path, description, ip, username, password, cmd_set):
+        """ Function creating a NetconfTask object.
+
+        Args:
+            path (string): location of the task log file
+            description (string): description of the task
+            ip (string): ip address of the device
+            username (string): username to login on the device
+            password (string): password to login on the device
+            cmd_set (list of string): list of instruction to be run on a device
+
+        Returns:
+
+        Raises:
+        """
+
         super().__init__(path, description)
         self._ip = ip
         self._username = username
@@ -19,6 +36,17 @@ class NetconfTask(Task):
         return self._ip
 
     def run(self):
+        """ Function that runs a set of instruction on a device.
+
+        Args:
+
+        Returns:
+            Successful completed
+
+        Raises:
+            Exception
+        """
+
         try:
             # Opening the connection
             self._log("Running task")

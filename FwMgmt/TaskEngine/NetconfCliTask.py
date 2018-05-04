@@ -4,6 +4,22 @@ from .TaskEngine import Task
 
 
 class NetconfCliTask(Task):
+    """ Function creating a NetconfCLITask object.
+
+    Should typically used for applyging a "show command" on a group of device
+
+    Args:
+        path (string): location of the task log file
+        description (string): description of the task
+        ip (string): ip address of the device
+        username (string): username to login on the device
+        password (string): password to login on the device
+        cmd_set (list of string): list of instruction to be run on a device
+
+    Returns:
+
+    Raises:
+    """
 
     def __init__(self, path, description, ip, username, password, show_cmd):
         super().__init__(path, description)

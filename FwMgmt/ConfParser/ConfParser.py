@@ -10,6 +10,24 @@ class ConfigParser:
         self._instruction = dict()
 
     def load_topology(self, fd):
+        """ Loads the topology
+
+        This function loads the topology int a dictionary. The topology is expected to have following syntax.
+        Topology comes with one or multiple groups. A group being a list of devices and common credentials.
+            group: <group_name>,
+            username: <username>,
+            password: <password>,
+            <device_ip>
+            <device_ip>
+
+        Args:
+            fd: Topology file description.
+
+        Returns:
+
+        Raises:
+
+        """
         csv_fd = csv.reader(fd, delimiter=',')
 
         new_group = None
@@ -59,6 +77,22 @@ class ConfigParser:
 
 
     def load_instruction(self, fd):
+        """ Loads the instruction
+
+        This function loads the instructions into a dictionary. Instructions are stored into a CSV file with following syntax
+
+        <group><instruction>
+
+        instruction being a string to be executed on all devices part of the group.
+
+        Args:
+            fd: instruction file descriptor
+
+        Returns:
+
+        Raises:
+        """
+
         csv_fd = csv.reader(fd, delimiter=',')
 
         for line in csv_fd:
@@ -79,6 +113,15 @@ class ConfigParser:
 
 
     def print_instruction(self):
+        ''' Printed the different instruction as loaded from the instruction file
+
+        Args:
+
+        Returns:
+
+        Raises:
+        '''
+
         print('---------------- Loaded Instructions ----------------')
         for key in self._instruction.keys():
             print(key)
@@ -88,6 +131,15 @@ class ConfigParser:
 
 
     def print_topology(self):
+        ''' Printed the topology as loaded from the topology file
+
+        Args:
+
+        Returns:
+
+        Raises:
+        '''
+
         print('---------------- Loaded Topology ----------------')
 
         for key in self._topology.keys():
@@ -102,6 +154,15 @@ class ConfigParser:
 
 
     def __iter__(self):
+        ''' Generator function generating the list of instructions to be applied to each devices in the topology
+
+        Args:
+
+        Returns: (device_ip, group, username, password, instruction set)
+
+        Raises:
+        '''
+
         for group in self._instruction.keys():
             for device in self._topology[group]['device_list']:
                 logger1.warning('Creating task for : {0}, part of group {1} at {2}: '.format(device, group, time.asctime()))

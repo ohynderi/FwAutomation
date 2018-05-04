@@ -6,6 +6,18 @@ logger1 = logging.getLogger("ConfigParser")
 class TopoParser(ConfigParser):
 
     def load_instruction(self, cmd, grp):
+        """ Loads an instruction
+
+        This function is intended to run one "show command" against one topology group.
+
+        Args:
+            cmd: a string including the instruction to be loaded.
+
+        Returns:
+
+        Raises:
+        """
+
         if re.match('show .*', cmd):
 
             if grp in self._topology.keys():

@@ -32,6 +32,16 @@ class Task(metaclass=ABCMeta):
 
 
 def task_engine(task_gen, conc_thread = 6):
+    """ Function that executes tasks and return the status of each task once terminated.
+
+    Args:
+        task_gen: generator yielding a set of objects of type Task
+
+    Returns:
+
+    Raises:
+    """
+
     logger1.warning('Start Running tasks...')
 
     with concurrent.futures.ThreadPoolExecutor(max_workers = conc_thread) as executor:

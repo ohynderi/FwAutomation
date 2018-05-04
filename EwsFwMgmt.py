@@ -4,18 +4,15 @@ from os import getcwd
 import logging
 logger1 = logging.getLogger("__main__")
 import logging.config
-
-def print_help():
-    print('usage: EwsFwMgmt.py [-h] [-c "show command"] [-g "group"]\n')
-    print('example: EwsFwMgmt.py -c "show version" -g group1')
+import argparse
 
 
-def show_cmd(cmd, grp):
-    logger1.debug('Getting {0} output from {1}'.format(cmd, grp))
+def show_cmd(cmd, grp, topology_file):
+    logger1.debug('Getting "{0}" output from {1}'.format(cmd, grp))
 
     parser1 = FwMgmt.TopoParser()
 
-    with open(getcwd() + '/Config/topology.csv') as fd_topology:
+    with open(getcwd() + topology_file) as fd_topology:
         parser1.load_topology(fd_topology)
 
     parser1.load_instruction(cmd, grp)
@@ -25,7 +22,7 @@ def show_cmd(cmd, grp):
     FwMgmt.task_engine(task_gen)
 
 
-def set_cmd():
+def set_cmd(instruction_file, topology_group):
     parser1 = FwMgmt.ConfigParser()
 
     with open(getcwd() + '/Config/topology.csv') as fd_topology:
@@ -44,23 +41,26 @@ def set_cmd():
 
 
 def main():
-    if len(sys.argv) == 1:
-        set_cmd()
 
-    elif '-h' in sys.argv:
-        print_help()
+    parser = argparse.ArgumentParser()
 
-    elif '-c' in sys.argv:
-        cmd = sys.argv[sys.argv.index('-c') + 1]
+    parser.add_argument('-c', action='store', dest='show_command', help='To be used in combination with -g')
+    parser.add_argument('-g', action='store', dest='topology_group', help='To be used in combination with -c')
+    parser.add_argument('-f', action='store', dest='instruction_file', help='By default: Config/instruction.csv', default='/Config/instructions.csv')
+    parser.add_argument('-t', action='store', dest='topology_file', help='By default: Config/topology.csv', default='/Config/topology.csv')
 
-        if '-g' in sys.argv:
-            grp = sys.argv[sys.argv.index('-g') + 1]
-            show_cmd(cmd, grp)
-        else:
-            print_help()
+    parser_result = parser.parse_args()
+
+    if parser_result.show_command and parser_result.topology_group:
+        show_cmd(parser_result.show_command, parser_result.topology_group, parser_result.topology_file)
+    elif parser_result.show_command and not parser_result.topology_group:
+        raise Exception('missing -g argument')
+
+    elif not parser_result.show_command and parser_result.topology_group:
+        raise Exception('missing -c argument')
 
     else:
-        print_help()
+        set_cmd(parser_result.instruction_file, parser_result.topology_file)
 
 
 if __name__ == '__main__':
