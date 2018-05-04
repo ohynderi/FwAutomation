@@ -6,7 +6,6 @@ logger1 = logging.getLogger("__main__")
 import logging.config
 import argparse
 
-
 def show_cmd(cmd, grp, topology_file):
     logger1.debug('Getting "{0}" output from {1}'.format(cmd, grp))
 
