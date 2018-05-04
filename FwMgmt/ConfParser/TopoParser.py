@@ -1,7 +1,7 @@
-import csv
 import re
-import time
 from .ConfParser import ConfigParser
+import logging
+logger1 = logging.getLogger("ConfigParser")
 
 class TopoParser(ConfigParser):
 
@@ -9,8 +9,7 @@ class TopoParser(ConfigParser):
         if re.match('show .*', cmd):
 
             if grp in self._topology.keys():
-                if self._debug:
-                    print('Adding instruction {0} to group {1}'.format(cmd, grp))
+                logger1.debug('Adding instruction "{0}" to group {1}'.format(cmd, grp))
 
                 self._instruction[grp] = list()
                 self._instruction[grp].append(cmd)

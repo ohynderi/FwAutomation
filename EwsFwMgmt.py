@@ -1,7 +1,9 @@
 import FwMgmt
 import sys
 from os import getcwd
-
+import logging
+logger1 = logging.getLogger("__main__")
+import logging.config
 
 def print_help():
     print('usage: EwsFwMgmt.py [-h] [-c "show command"] [-g "group"]\n')
@@ -9,9 +11,9 @@ def print_help():
 
 
 def show_cmd(cmd, grp):
-    print('Getting {0} output from {1}'.format(cmd, grp))
+    logger1.debug('Getting {0} output from {1}'.format(cmd, grp))
 
-    parser1 = FwMgmt.TopoParser(False)
+    parser1 = FwMgmt.TopoParser()
 
     with open(getcwd() + '/Config/topology.csv') as fd_topology:
         parser1.load_topology(fd_topology)
@@ -20,11 +22,11 @@ def show_cmd(cmd, grp):
 
     task_gen = (FwMgmt.NetconfCliTask(getcwd() + '/Log/', '', device, username, password, cmd) for
                 device, username, password, cmd in iter(parser1))
-    FwMgmt.task_engine(task_gen, debug=True)
+    FwMgmt.task_engine(task_gen)
 
 
 def set_cmd():
-    parser1 = FwMgmt.ConfigParser(False)
+    parser1 = FwMgmt.ConfigParser()
 
     with open(getcwd() + '/Config/topology.csv') as fd_topology:
         parser1.load_topology(fd_topology)
@@ -38,7 +40,7 @@ def set_cmd():
 
         task_gen = (FwMgmt.NetconfTask(getcwd() + '/Log/', '', device, username, password, cmd_set)
                     for device, username, password, cmd_set in iter(parser1))
-        FwMgmt.task_engine(task_gen, debug=True)
+        FwMgmt.task_engine(task_gen)
 
 
 def main():
@@ -62,7 +64,9 @@ def main():
 
 
 if __name__ == '__main__':
+    logging.config.fileConfig('Config/logging.conf')
     main()
+
 
 
 

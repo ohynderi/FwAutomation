@@ -1,12 +1,13 @@
 import csv
 import re
 import time
+import logging
+logger1 = logging.getLogger("ConfigParser")
 
 class ConfigParser:
-    def __init__(self, debug=False):
+    def __init__(self):
         self._topology = dict()
         self._instruction = dict()
-        self._debug = debug
 
     def load_topology(self, fd):
         csv_fd = csv.reader(fd, delimiter=',')
@@ -19,25 +20,21 @@ class ConfigParser:
         for line in csv_fd:
             if re.match('group: .+', line[0]):
                 new_group = line[0].split()[1]
-                if self._debug:
-                    print('New group found: {0}'.format(new_group))
+                logger1.debug('New group found: {0}'.format(new_group))
 
             elif re.match('username: .+', line[0]):
                 new_user = line[0].split()[1]
-                if  self._debug:
-                    print('\tNew user found: {0}'.format(new_user))
+                logger1.debug('\tuser: {0}'.format(new_user))
 
             elif re.match('password: .+', line[0]):
                 new_password = line[0].split()[1]
-                if  self._debug:
-                    print('\tNew user found: {0}'.format(new_password))
+                logger1.debug('\tpassword: {0}'.format(new_password))
 
             elif re.match('[0-9]+.[0-9]+.[0-9]+.[0-9]+', line[0]):
                 if not new_dev_list:
                     new_dev_list = list()
                 new_dev_list.append(line[0])
-                if  self._debug:
-                    print('\t\tNew device found: {0}'.format(line[0]))
+                logger1.debug('\tdevice: {0}'.format(line[0]))
 
             elif re.match('', line[0]) and new_group and new_user and new_password and new_dev_list:
                 self._topology[new_group] = {'username' : new_user}
@@ -53,7 +50,7 @@ class ConfigParser:
                 pass
 
             else:
-                print('This line makes no sense, skipping : {0}'.format(line))
+                logger1.debug('This line makes no sense, skipping : {0}'.format(line))
 
         if new_group and new_user and new_password and new_dev_list:
             self._topology[new_group] = {'username': new_user}
@@ -69,20 +66,16 @@ class ConfigParser:
                 pass
 
             elif line[0] not in self._topology.keys():
-                if  self._debug:
-                    print('This is an instruction for a group that doesnt exit. Skipping... {0}'.format(line))
+                logger1.debug('This is an instruction for a group that doesnt exit. Skipping... {0}'.format(line))
 
             elif line[0] in self._instruction.keys():
                 self._instruction[line[0]].append(line[1])
-                if  self._debug:
-                    print('Adding instruction {0} to group {1}'.format(line[1], line[0]))
+                logger1.debug('Adding instruction {0} to group {1}'.format(line[1], line[0]))
 
             elif line[0] not in self._instruction.keys():
                 self._instruction[line[0]] = list()
                 self._instruction[line[0]].append(line[1])
-
-                if self._debug:
-                    print('Adding {0} with instruction {1}'.format(line[0], line[1]))
+                logger1.debug('Adding {0} with instruction {1}'.format(line[0], line[1]))
 
 
     def print_instruction(self):
@@ -111,9 +104,7 @@ class ConfigParser:
     def __iter__(self):
         for group in self._instruction.keys():
             for device in self._topology[group]['device_list']:
-                if self._debug:
-                    print('Creating task for : {0}, part of group {1} at {2}: '.format(device, group, time.asctime()))
-
+                logger1.warning('Creating task for : {0}, part of group {1} at {2}: '.format(device, group, time.asctime()))
                 yield (device, self._topology[group]['username'], self._topology[group]['password'], self._instruction[group])
 
 

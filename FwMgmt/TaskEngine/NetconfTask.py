@@ -5,7 +5,6 @@ import traceback
 from lxml import etree
 from .TaskEngine import Task
 
-
 class NetconfTask(Task):
 
     def __init__(self, path, description, ip, username, password, cmd_set):

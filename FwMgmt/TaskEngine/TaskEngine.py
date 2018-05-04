@@ -1,6 +1,8 @@
 from abc import ABCMeta, abstractmethod
 import concurrent.futures
 import time
+import logging
+logger1 = logging.getLogger("TaskEngine")
 
 class Task(metaclass=ABCMeta):
     task_id = 0
@@ -29,9 +31,8 @@ class Task(metaclass=ABCMeta):
         return '{0} {1}'.format(self._task_name, ': ' + self._description)
 
 
-def task_engine(task_gen, conc_thread = 6, debug = False):
-    if debug:
-        print('Start Running tasks at {0}...'.format(time.asctime()))
+def task_engine(task_gen, conc_thread = 6):
+    logger1.warning('Start Running tasks...')
 
     with concurrent.futures.ThreadPoolExecutor(max_workers = conc_thread) as executor:
         ongoing_task = {executor.submit(task.run): task.task_name for task in task_gen}
@@ -40,7 +41,6 @@ def task_engine(task_gen, conc_thread = 6, debug = False):
             try:
                 result = future.result()
             except Exception as e:
-                print('{0} : {1}'.format(task_name, e))
+                logger1.warning('{0} : {1}'.format(task_name, e))
             else:
-                print('{0} {1} at {2}'.format(task_name, result, time.asctime()))
-
+                logger1.warning('Task for {0} {1}'.format(task_name, result))
