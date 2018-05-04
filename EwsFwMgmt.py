@@ -40,7 +40,6 @@ def set_cmd(instruction_file, topology_group):
 
 
 def main():
-
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-c', action='store', dest='show_command', help='To be used in combination with -g')
