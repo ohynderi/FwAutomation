@@ -31,9 +31,12 @@ class NetconfTask(Task):
         self._password = password
         self._cmd_set = cmd_set
 
+
+    '''
     @property
     def task_name(self):
         return self._ip
+    '''
 
     def run(self):
         """ Function that runs a set of instruction on a device.

@@ -3,6 +3,12 @@ from .ConfParser import ConfigParser
 import logging
 logger1 = logging.getLogger("ConfigParser")
 
+class InvalidCmd(Exception):
+    pass
+
+class InvalidGrp(Exception):
+    pass
+
 class TopoParser(ConfigParser):
 
     def load_instruction(self, cmd, grp):
@@ -27,7 +33,7 @@ class TopoParser(ConfigParser):
                 self._instruction[grp].append(cmd)
 
             else:
-                raise Exception('The Group {0} is not in the topology'.format(grp))
+                raise InvalidGrp('The Group {0} is not in the topology'.format(grp))
 
         else:
-            raise Exception('Invalide command')
+            raise InvalidCmd('This is not a show command')

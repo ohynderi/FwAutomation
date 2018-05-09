@@ -28,9 +28,11 @@ class NetconfCliTask(Task):
         self._password = password
         self._cmd = show_cmd[0]
 
+    '''
     @property
     def task_name(self):
         return self._ip
+    '''
 
     def run(self):
         try:

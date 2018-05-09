@@ -4,6 +4,16 @@ import time
 import logging
 logger1 = logging.getLogger("ConfigParser")
 
+class InvalidTopology(Exception):
+    pass
+
+class InvalidInstruction(Exception):
+    pass
+
+class MalformCsv(Exception):
+    pass
+
+
 class ConfigParser:
     def __init__(self):
         self._topology = dict()
@@ -12,8 +22,12 @@ class ConfigParser:
     def load_topology(self, fd):
         """ Loads the topology
 
-        This function loads the topology int a dictionary. The topology is expected to have following syntax.
-        Topology comes with one or multiple groups. A group being a list of devices and common credentials.
+        This function loads the topology into the object internal structure.
+
+        The topology is csv file listing one or more device groups.
+        All devices part of a group share the same credentials
+
+        Device group syntax:
             group: <group_name>,
             username: <username>,
             password: <password>,
@@ -21,13 +35,14 @@ class ConfigParser:
             <device_ip>
 
         Args:
-            fd: Topology file description.
+            fd: topology file descriptor
 
         Returns:
 
         Raises:
 
         """
+
         csv_fd = csv.reader(fd, delimiter=',')
 
         new_group = None
@@ -36,25 +51,29 @@ class ConfigParser:
         new_dev_list = None
 
         for line in csv_fd:
+            if len(line) == 0:
+                raise MalformCsv
+
             if re.match('group: .+', line[0]):
                 new_group = line[0].split()[1]
                 logger1.debug('New group found: {0}'.format(new_group))
 
             elif re.match('username: .+', line[0]):
                 new_user = line[0].split()[1]
-                logger1.debug('\tuser: {0}'.format(new_user))
+                logger1.debug('\twith user: {0}'.format(new_user))
 
             elif re.match('password: .+', line[0]):
                 new_password = line[0].split()[1]
-                logger1.debug('\tpassword: {0}'.format(new_password))
+                logger1.debug('\twith password: {0}'.format(new_password))
 
-            elif re.match('[0-9]+.[0-9]+.[0-9]+.[0-9]+', line[0]):
+            elif re.match('[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+', line[0]):
                 if not new_dev_list:
                     new_dev_list = list()
                 new_dev_list.append(line[0])
-                logger1.debug('\tdevice: {0}'.format(line[0]))
+                logger1.debug('\twith device: {0}'.format(line[0]))
 
-            elif re.match('', line[0]) and new_group and new_user and new_password and new_dev_list:
+            elif re.match('^$', line[0]) and new_group and new_user and new_password and new_dev_list:
+                logger1.debug('\t|-> Group {0} discovered'.format(new_group))
                 self._topology[new_group] = {'username' : new_user}
                 self._topology[new_group]['password'] = new_password
                 self._topology[new_group]['device_list'] = new_dev_list
@@ -64,26 +83,40 @@ class ConfigParser:
                 new_password = None
                 new_dev_list = None
 
-            elif re.match('', line[0]):
-                pass
+            elif re.match('^$', line[0]) and (new_group or new_user or new_password or new_dev_list):
+                logger1.warning('Group definition incomplete, skipping'.format())
+
+                new_group = None
+                new_user = None
+                new_password = None
+                new_dev_list = None
+
+            elif re.match('^$', line[0]):
+                logger1.debug('Empty line, skipping : {0}'.format(line))
 
             else:
-                logger1.debug('This line makes no sense, skipping : {0}'.format(line))
+                logger1.warning('This line makes no sense, skipping : {0}'.format(line))
 
         if new_group and new_user and new_password and new_dev_list:
+            logger1.debug('\t|-> Group {0} discovered'.format(new_group))
             self._topology[new_group] = {'username': new_user}
             self._topology[new_group]['password'] = new_password
             self._topology[new_group]['device_list'] = new_dev_list
+
+        if len(self._topology.keys()) == 0:
+            raise InvalidTopology('No proper topology found')
 
 
     def load_instruction(self, fd):
         """ Loads the instruction
 
-        This function loads the instructions into a dictionary. Instructions are stored into a CSV file with following syntax
+        This function loads the instructions into the object internal structure.
 
-        <group><instruction>
+        Instructions are listed into a CSV file.
+        For each line, first column is the group the instruction applies. Second column is the instruction.
 
-        instruction being a string to be executed on all devices part of the group.
+        Hence syntax is the following:
+        <group>,<instruction>
 
         Args:
             fd: instruction file descriptor
@@ -96,7 +129,10 @@ class ConfigParser:
         csv_fd = csv.reader(fd, delimiter=',')
 
         for line in csv_fd:
-            if line[0] == '':
+            if len(line) == 0:
+                raise MalformCsv
+
+            if line[0] == '^$':
                 pass
 
             elif line[0] not in self._topology.keys():
@@ -107,9 +143,13 @@ class ConfigParser:
                 logger1.debug('Adding instruction {0} to group {1}'.format(line[1], line[0]))
 
             elif line[0] not in self._instruction.keys():
+                # Group exists in the topology but this is the first instruction for that group being parsed
                 self._instruction[line[0]] = list()
                 self._instruction[line[0]].append(line[1])
                 logger1.debug('Adding {0} with instruction {1}'.format(line[0], line[1]))
+
+        if len(self._instruction.keys()) == 0:
+            raise InvalidInstruction('No valid instruction found')
 
 
     def print_instruction(self):
@@ -154,7 +194,7 @@ class ConfigParser:
 
 
     def __iter__(self):
-        ''' Generator function generating the list of instructions to be applied to each devices in the topology
+        ''' Generator function yielding  the instruction for the devices.
 
         Args:
 
@@ -163,9 +203,12 @@ class ConfigParser:
         Raises:
         '''
 
+        iter = 0
+
         for group in self._instruction.keys():
             for device in self._topology[group]['device_list']:
-                logger1.warning('Creating task for : {0}, part of group {1} at {2}: '.format(device, group, time.asctime()))
+                iter += 1
+                logger1.warning('Creating Task-{0} for {1}, part of group {2}'.format(iter, device, group))
                 yield (device, self._topology[group]['username'], self._topology[group]['password'], self._instruction[group])
 
 

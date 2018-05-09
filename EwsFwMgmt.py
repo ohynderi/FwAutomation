@@ -7,36 +7,68 @@ import logging.config
 import argparse
 
 def show_cmd(cmd, grp, topology_file):
-    logger1.debug('Getting "{0}" output from {1}'.format(cmd, grp))
+    try:
+        logger1.warning('Requesting "{0}" from {1}'.format(cmd, grp))
 
-    parser1 = FwMgmt.TopoParser()
+        parser1 = FwMgmt.TopoParser()
 
-    with open(getcwd() + topology_file) as fd_topology:
-        parser1.load_topology(fd_topology)
+        with open(getcwd()  + topology_file) as fd_topology:
+            parser1.load_topology(fd_topology)
 
-    parser1.load_instruction(cmd, grp)
+        parser1.load_instruction(cmd, grp)
 
-    task_gen = (FwMgmt.NetconfCliTask(getcwd() + '/Log/', '', device, username, password, cmd) for
-                device, username, password, cmd in iter(parser1))
-    FwMgmt.task_engine(task_gen)
-
-
-def set_cmd(instruction_file, topology_group):
-    parser1 = FwMgmt.ConfigParser()
-
-    with open(getcwd() + '/Config/topology.csv') as fd_topology:
-        parser1.load_topology(fd_topology)
-
-    if len(sys.argv) == 1:
-        with open(getcwd() + '/Config/instructions.csv') as fd_instruction:
-            parser1.load_instruction(fd_instruction)
-
-        #parser1.print_topology()
-        #parser1.print_instruction()
-
-        task_gen = (FwMgmt.NetconfTask(getcwd() + '/Log/', '', device, username, password, cmd_set)
-                    for device, username, password, cmd_set in iter(parser1))
+        task_gen = (FwMgmt.NetconfCliTask(getcwd() + '/Log/', '', device, username, password, cmd) for
+                    device, username, password, cmd in iter(parser1))
         FwMgmt.task_engine(task_gen)
+
+    except FwMgmt.InvalidCmd as e:
+        logger1.critical('This is not a valid show command. Stopping')
+
+    except FwMgmt.InvalidGrp as e:
+        logger1.critical('Show command for a group that is not in the topology. Stopping'.format(grp))
+
+    except FwMgmt.InvalidTopology:
+        logger1.critical('No proper / empty topology. Stopping...')
+
+    except FwMgmt.MalformCsv as e:
+        logger1.critical('Malformed csv file. Stopping')
+
+    except Exception as e:
+        raise
+
+
+def set_cmd(instruction_file, topology_file):
+    try:
+        parser1 = FwMgmt.ConfigParser()
+
+        with open(getcwd() + topology_file) as fd_topology:
+            parser1.load_topology(fd_topology)
+
+        if len(sys.argv) == 1:
+            with open(getcwd() + instruction_file) as fd_instruction:
+                parser1.load_instruction(fd_instruction)
+
+            #parser1.print_topology()
+            #parser1.print_instruction()
+
+            task_gen = (FwMgmt.NetconfTask(getcwd() + '/Log/', '', device, username, password, cmd_set)
+                        for device, username, password, cmd_set in iter(parser1))
+            FwMgmt.task_engine(task_gen)
+
+    except FwMgmt.InvalidTopology as e:
+        logger1.critical('No proper / empty topology. Stopping...')
+
+    except FwMgmt.InvalidInstruction as e:
+        logger1.critical('No proper instruction found. Stopping')
+
+    except FwMgmt.MalformCsv as e:
+        logger1.critical('Malformed topology csv file. Stopping')
+
+    except FwMgmt.MalformCsv as e:
+        logger1.critical('Malformed csv file. Stopping')
+
+    except Exception as e:
+        raise
 
 
 def main():
@@ -44,8 +76,8 @@ def main():
 
     parser.add_argument('-c', action='store', dest='show_command', help='To be used in combination with -g')
     parser.add_argument('-g', action='store', dest='topology_group', help='To be used in combination with -c')
-    parser.add_argument('-f', action='store', dest='instruction_file', help='By default: Config/instruction.csv', default='/Config/instructions.csv')
-    parser.add_argument('-t', action='store', dest='topology_file', help='By default: Config/topology.csv', default='/Config/topology.csv')
+    parser.add_argument('-i', action='store', dest='instruction_file', help='By default: /Config/instruction.csv', default='/Config/instructions.csv')
+    parser.add_argument('-t', action='store', dest='topology_file', help='By default: /Config/topology.csv', default='/Config/topology.csv')
 
     parser_result = parser.parse_args()
 

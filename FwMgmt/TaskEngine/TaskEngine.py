@@ -51,6 +51,6 @@ def task_engine(task_gen, conc_thread = 6):
             try:
                 result = future.result()
             except Exception as e:
-                logger1.warning('{0} : {1}'.format(task_name, e))
+                logger1.warning('{0}: {1}'.format(task_name, e))
             else:
-                logger1.warning('Task for {0} {1}'.format(task_name, result))
+                logger1.warning('{0}: {1}'.format(task_name, result))
