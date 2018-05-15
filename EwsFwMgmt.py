@@ -1,10 +1,30 @@
 import FwMgmt
-import sys
-from os import getcwd
+from os import getcwd, listdir, remove
+from os.path import getctime, basename
 import logging
 logger1 = logging.getLogger("__main__")
 import logging.config
 import argparse
+import zipfile
+import re
+import time
+
+def archive_log_files():
+
+    log_dir = getcwd() + '/Log/'
+
+    file_list = [f for f in listdir(log_dir) if re.match('Task.*', f)]
+
+    if len(file_list) > 0:
+        logger1.warning('Archiving previous log file')
+        creation_time = time.strftime('%Y%m%d%H%M%S', time.gmtime(getctime(log_dir + file_list[0])))
+
+        with zipfile.ZipFile(log_dir + creation_time + ".zip", "w") as zip_fd:
+            for file in file_list:
+                zip_fd.write(log_dir + file, basename(log_dir + file))
+                remove(log_dir + file)
+
+
 
 def show_cmd(cmd, devices, topology_file):
 
@@ -92,6 +112,7 @@ def main():
     parser.add_argument('-i', action='store', dest='instruction_file', help='By default: /Config/instruction.csv', default='/Config/instructions.csv')
     parser.add_argument('-t', action='store', dest='topology_file', help='By default: /Config/topology.csv', default='/Config/topology.csv')
 
+    archive_log_files()
     parser_result = parser.parse_args()
 
     if parser_result.show_command and parser_result.devices:

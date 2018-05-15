@@ -1,4 +1,4 @@
-from .ConfigParserLib import *
+from .ConfigParserLib import str_to_device_list, list_to_command_set
 import csv
 import re
 import logging
@@ -22,8 +22,6 @@ class MalformFile(Exception):
     @property
     def row(self):
         return self._row
-
-
 
 
 class ConfigParser:
@@ -83,7 +81,7 @@ class ConfigParser:
         The instruction are defined in a text with one or more instruction blocks.
         An instruction block has following syntax:
 
-        devices: [(<devicesX>,)+ | all_devices)]
+        devices: [(<hostname>,)+ | all_devices)]
         commands:
             <command1>
             <command2>
@@ -109,10 +107,58 @@ class ConfigParser:
         # commands being the list of commands part of the instruction block
         commands = list()
 
-        # site_ids being the list of site for which the command set
-        # in case of multiple fw per site. change need to be done for one fw only...
-        site_ids = list()
+        for row, line in enumerate(fd):
+            if line.lstrip() == '':
+                # Empty line, skipping
+                logger1.debug("Line {0} of instruction file empty. Skipping...".format(row + 1))
 
+            elif re.match('devices:', line) and device_flag and command_flag:
+                # New device statement, exiting current block, entering new one.
+                logger1.debug('Exiting instruction bloc')
+                command_flag = False
+
+                # Processing previous block
+                for device in devices:
+                    if device in self._topology.keys():
+                        logger1.debug('Adding instruction set to device {0}'.format(device))
+                        self._instruction[device] = list_to_command_set(commands, self._topology[device]['id'])
+
+                    else:
+                        logger1.debug('Device {0} doesnt exist in the topology. Skipping...'.format(device))
+
+                # Opening new block
+                logger1.debug('Entering new block')
+                commands = list()
+
+                if re.search('all_devices', line):
+                    devices = self._topology.keys()
+                else:
+                    devices = str_to_device_list(line)
+
+            elif re.match('devices:', line) and not device_flag and not command_flag:
+                # Entering first block of the instruction file
+                logger1.debug('Entering instruction block')
+                device_flag = True
+
+                if re.search('all_devices', line):
+                    devices = self._topology.keys()
+                else:
+                    devices = str_to_device_list(line)
+
+            elif re.match('commands:', line) and device_flag and not command_flag:
+                # command statement and we are in a block
+                command_flag = True
+
+            elif device_flag and command_flag and (re.match('[set|del|insert].*', line.lstrip())):
+                # Instruction part part of a block
+                logger1.debug('Adding instruction "{0}" to instruction set'.format(line.lstrip().rstrip()))
+                commands.append(line.lstrip().rstrip())
+
+            else:
+                raise MalformFile('instruction file', row + 1)
+
+
+        '''
         for row, line in enumerate(fd):
             if line.lstrip() == '' and not device_flag and not command_flag:
                 # Empty line between block. Skipping
@@ -179,20 +225,20 @@ class ConfigParser:
 
             else:
                 raise MalformFile('instruction file', row + 1)
+                
+        '''
 
         # EOF reached. Processing last block
         if device_flag and command_flag:
-            for device in devices.split(','):
-                if device.lstrip().rstrip() in self._topology.keys():
-                    logger1.debug('Adding instruction set to device {0}'.format(device.lstrip().rstrip()))
-                    self._instruction[device.lstrip().rstrip()] = list_to_command_set(commands, self._topology[device]['id'])
+            for device in devices:
+                if device in self._topology.keys():
+                    logger1.debug('Adding instruction set to device {0}'.format(device))
+                    self._instruction[device] = list_to_command_set(commands, self._topology[device]['id'])
                 else:
-                    logger1.debug(
-                        'Device {0} doesnt exist in the topology. Skipping...'.format(device.lstrip().rstrip()))
+                    logger1.debug('Device {0} doesnt exist in the topology. Skipping...'.format(device))
 
         if len(self._instruction.keys()) == 0:
             raise InvalidInstruction('No valid instruction found')
-
 
 
     def print_instruction(self):
