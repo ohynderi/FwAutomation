@@ -1,6 +1,6 @@
+from .ConfigParserLib import *
 import csv
 import re
-import time
 import logging
 logger1 = logging.getLogger("ConfigParser")
 
@@ -10,8 +10,20 @@ class InvalidTopology(Exception):
 class InvalidInstruction(Exception):
     pass
 
-class MalformCsv(Exception):
-    pass
+class MalformFile(Exception):
+    def __init__(self, file, row):
+        self._file = file
+        self._row = row
+
+    @property
+    def file(self):
+        return self._file
+
+    @property
+    def row(self):
+        return self._row
+
+
 
 
 class ConfigParser:
@@ -19,20 +31,16 @@ class ConfigParser:
         self._topology = dict()
         self._instruction = dict()
 
+
     def load_topology(self, fd):
         """ Loads the topology
 
         This function loads the topology into the object internal structure.
 
-        The topology is csv file listing one or more device groups.
-        All devices part of a group share the same credentials
-
-        Device group syntax:
-            group: <group_name>,
-            username: <username>,
-            password: <password>,
-            <device_ip>
-            <device_ip>
+        The topology is csv file with:
+            line 0: firewall hostname:
+            line 3: the site id
+            line 4: the fw management ip
 
         Args:
             fd: topology file descriptor
@@ -40,116 +48,151 @@ class ConfigParser:
         Returns:
 
         Raises:
-
+            InvalidTopology if no valid entry found.
+                A line is considered invalid if hostname is empty or
+                the side_id is not an integer or
+                the management ip is not and ipv4
         """
 
         csv_fd = csv.reader(fd, delimiter=',')
 
-        new_group = None
-        new_user = None
-        new_password = None
-        new_dev_list = None
+        for row, line, in enumerate(csv_fd):
+            site_id = line[3].lstrip()
+            hostname = line[0].lstrip()
+            ip = line[4].lstrip()
 
-        for line in csv_fd:
-            if len(line) == 0:
-                raise MalformCsv
-
-            if re.match('group: .+', line[0]):
-                new_group = line[0].split()[1]
-                logger1.debug('New group found: {0}'.format(new_group))
-
-            elif re.match('username: .+', line[0]):
-                new_user = line[0].split()[1]
-                logger1.debug('\twith user: {0}'.format(new_user))
-
-            elif re.match('password: .+', line[0]):
-                new_password = line[0].split()[1]
-                logger1.debug('\twith password: {0}'.format(new_password))
-
-            elif re.match('[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+', line[0]):
-                if not new_dev_list:
-                    new_dev_list = list()
-                new_dev_list.append(line[0])
-                logger1.debug('\twith device: {0}'.format(line[0]))
-
-            elif re.match('^$', line[0]) and new_group and new_user and new_password and new_dev_list:
-                logger1.debug('\t|-> Group {0} discovered'.format(new_group))
-                self._topology[new_group] = {'username' : new_user}
-                self._topology[new_group]['password'] = new_password
-                self._topology[new_group]['device_list'] = new_dev_list
-
-                new_group = None
-                new_user = None
-                new_password = None
-                new_dev_list = None
-
-            elif re.match('^$', line[0]) and (new_group or new_user or new_password or new_dev_list):
-                logger1.warning('Group definition incomplete, skipping'.format())
-
-                new_group = None
-                new_user = None
-                new_password = None
-                new_dev_list = None
-
-            elif re.match('^$', line[0]):
-                logger1.debug('Empty line, skipping : {0}'.format(line))
-
+            if hostname != '' and re.match('[0-9]+', site_id) and re.match('[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+',ip):
+                if hostname not in self._topology.keys():
+                    self._topology[hostname] = dict()
+                    self._topology[hostname]['id'] = site_id
+                    self._topology[hostname]['ip'] = ip
+                else:
+                    logger1.debug('Hostname at line {0} already in the topology db. Skipping'.format(row +1))
             else:
-                logger1.warning('This line makes no sense, skipping : {0}'.format(line))
-
-        if new_group and new_user and new_password and new_dev_list:
-            logger1.debug('\t|-> Group {0} discovered'.format(new_group))
-            self._topology[new_group] = {'username': new_user}
-            self._topology[new_group]['password'] = new_password
-            self._topology[new_group]['device_list'] = new_dev_list
+                logger1.debug('Line {0} of the topology file is invalid. Skipping'.format(row +1))
 
         if len(self._topology.keys()) == 0:
             raise InvalidTopology('No proper topology found')
 
 
     def load_instruction(self, fd):
-        """ Loads the instruction
+        """ Loads the instructions
 
         This function loads the instructions into the object internal structure.
 
-        Instructions are listed into a CSV file.
-        For each line, first column is the group the instruction applies. Second column is the instruction.
+        The instruction are defined in a text with one or more instruction blocks.
+        An instruction block has following syntax:
 
-        Hence syntax is the following:
-        <group>,<instruction>
+        devices: [(<devicesX>,)+ | all_devices)]
+        commands:
+            <command1>
+            <command2>
+            ...
 
         Args:
-            fd: instruction file descriptor
+            fd: topology file descriptor
 
         Returns:
 
         Raises:
         """
 
-        csv_fd = csv.reader(fd, delimiter=',')
+        # device_flag is true if parser is within an instruction block
+        device_flag = False
 
-        for line in csv_fd:
-            if len(line) == 0:
-                raise MalformCsv
+        # command_flag is true if parser is within an instruction block, within a parser block
+        command_flag = False
 
-            if line[0] == '^$':
-                pass
+        # devices being the list of devices part the instruction block
+        devices = list()
 
-            elif line[0] not in self._topology.keys():
-                logger1.debug('This is an instruction for a group that doesnt exit. Skipping... {0}'.format(line))
+        # commands being the list of commands part of the instruction block
+        commands = list()
 
-            elif line[0] in self._instruction.keys():
-                self._instruction[line[0]].append(line[1])
-                logger1.debug('Adding instruction {0} to group {1}'.format(line[1], line[0]))
+        # site_ids being the list of site for which the command set
+        # in case of multiple fw per site. change need to be done for one fw only...
+        site_ids = list()
 
-            elif line[0] not in self._instruction.keys():
-                # Group exists in the topology but this is the first instruction for that group being parsed
-                self._instruction[line[0]] = list()
-                self._instruction[line[0]].append(line[1])
-                logger1.debug('Adding {0} with instruction {1}'.format(line[0], line[1]))
+        for row, line in enumerate(fd):
+            if line.lstrip() == '' and not device_flag and not command_flag:
+                # Empty line between block. Skipping
+                logger1.debug("Line {0} of instruction file empty. Skipping...".format(row + 1))
+
+            elif line.strip() == '' and device_flag and command_flag:
+                # Empty line following a block. Hence exiting the block
+                logger1.debug('Exiting instruction bloc')
+                device_flag = False
+                command_flag = False
+
+                for device in devices:
+                    if device in self._topology.keys() and self._topology[device]['id'] not in site_ids:
+                        logger1.debug('Adding instruction set to device {0}'.format(device))
+                        self._instruction[device] = list_to_command_set(commands, self._topology[device]['id'])
+
+                    else:
+                        logger1.debug('Device {0} doesnt exist in the topology. Skipping...'.format(device))
+
+                devices = list()
+                commands = list()
+
+            elif re.match('devices:',line) and device_flag and command_flag:
+                # New device statement. Hence exiting the block and entering a new one
+                logger1.debug('Exiting instruction bloc')
+                command_flag = False
+
+                # Previous block processing
+                for device in devices:
+                    if device in self._topology.keys():
+                        logger1.debug('Adding instruction set to device {0}'.format(device))
+                        self._instruction[device] = list_to_command_set(commands, self._topology[device]['id'])
+
+                    else:
+                        logger1.debug('Device {0} doesnt exist in the topology. Skipping...'.format(device))
+
+                # New block processing
+                logger1.debug('Entering new block')
+                commands = list()
+
+                if re.search('all_devices', line):
+                    devices = self._topology.keys()
+                else:
+                    devices = str_to_device_list(line)
+
+            elif re.match('devices:',line) and not device_flag and not command_flag:
+                # Device statement and we are not in a block.
+                logger1.debug('Entering instruction block')
+                device_flag = True
+
+                if re.search('all_devices', line):
+                    devices = self._topology.keys()
+                else:
+                    devices = str_to_device_list(line)
+
+            elif re.match('commands:',line) and device_flag and not command_flag:
+                # command statement and we are in a block
+                command_flag = True
+
+            elif device_flag and command_flag and (re.match('[set|del|insert].*', line.lstrip())):
+                # Instruction part part of a block
+                logger1.debug('Adding instruction "{0}" to instruction set'.format(line.lstrip().rstrip()))
+                commands.append(line.lstrip().rstrip())
+
+            else:
+                raise MalformFile('instruction file', row + 1)
+
+        # EOF reached. Processing last block
+        if device_flag and command_flag:
+            for device in devices.split(','):
+                if device.lstrip().rstrip() in self._topology.keys():
+                    logger1.debug('Adding instruction set to device {0}'.format(device.lstrip().rstrip()))
+                    self._instruction[device.lstrip().rstrip()] = list_to_command_set(commands, self._topology[device]['id'])
+                else:
+                    logger1.debug(
+                        'Device {0} doesnt exist in the topology. Skipping...'.format(device.lstrip().rstrip()))
 
         if len(self._instruction.keys()) == 0:
             raise InvalidInstruction('No valid instruction found')
+
 
 
     def print_instruction(self):
@@ -182,14 +225,10 @@ class ConfigParser:
 
         print('---------------- Loaded Topology ----------------')
 
-        for key in self._topology.keys():
-            print('group: {0}'.format(key))
-            print('\tusername: {0}'.format(self._topology[key]['username']))
-            print('\tpassword: {0}'.format(self._topology[key]['password']))
-
-            for ip in self._topology[key]['device_list']:
-                print('\t\t{0}'.format(ip))
-
+        for hostname in self._topology.keys():
+            print('Hostname: {0}'.format(hostname))
+            print('\tSite ID: {0}'.format(self._topology[hostname]['id']))
+            print('\tIP: {0}'.format(self._topology[hostname]['ip']))
         print('---------------- Loaded Topology ----------------')
 
 
@@ -203,13 +242,9 @@ class ConfigParser:
         Raises:
         '''
 
-        iter = 0
-
-        for group in self._instruction.keys():
-            for device in self._topology[group]['device_list']:
-                iter += 1
-                logger1.warning('Creating Task-{0} for {1}, part of group {2}'.format(iter, device, group))
-                yield (device, self._topology[group]['username'], self._topology[group]['password'], self._instruction[group])
+        for device_nbr, device in enumerate(self._instruction.keys()):
+            logger1.warning('Creating Task-{0} for {1}'.format(device_nbr + 1, device))
+            yield (self._topology[device]['ip'], self._instruction[device])
 
 
 

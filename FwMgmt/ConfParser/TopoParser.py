@@ -1,5 +1,6 @@
 import re
 from .ConfParser import ConfigParser
+from .ConfigParserLib import *
 import logging
 logger1 = logging.getLogger("ConfigParser")
 
@@ -11,7 +12,7 @@ class InvalidGrp(Exception):
 
 class TopoParser(ConfigParser):
 
-    def load_instruction(self, cmd, grp):
+    def load_instruction(self, cmd, devices_str):
         """ Loads an instruction
 
         This function is intended to run one "show command" against one topology group.
@@ -26,14 +27,21 @@ class TopoParser(ConfigParser):
 
         if re.match('show .*', cmd):
 
-            if grp in self._topology.keys():
-                logger1.debug('Adding instruction "{0}" to group {1}'.format(cmd, grp))
-
-                self._instruction[grp] = list()
-                self._instruction[grp].append(cmd)
-
+            if re.search('all_devices', devices_str):
+                devices_list = self._topology.keys()
             else:
-                raise InvalidGrp('The Group {0} is not in the topology'.format(grp))
+                devices_list = str_to_device_list(devices_str)
+
+            for device in devices_list:
+
+                if device in self._topology.keys():
+                    logger1.debug('Adding instruction "{0}" to group {1}'.format(cmd, device))
+
+                    self._instruction[device] = list()
+                    self._instruction[device].append(cmd)
+
+                else:
+                    raise InvalidGrp('Device {0} is not in the topology'.format(grp))
 
         else:
             raise InvalidCmd('This is not a show command')
