@@ -31,7 +31,7 @@ class Task(metaclass=ABCMeta):
         return '{0} {1}'.format(self._task_name, ': ' + self._description)
 
 
-def task_engine(task_gen, conc_thread = 6):
+def task_engine(task_gen, conc_thread = 20):
     """ Function that executes tasks and return the status of each task once terminated.
 
     Args:

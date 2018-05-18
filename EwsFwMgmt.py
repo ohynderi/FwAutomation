@@ -49,7 +49,7 @@ def show_cmd(cmd, devices, topology_file):
         logger1.critical('This is not a valid show command. Stopping')
 
     except FwMgmt.InvalidGrp as e:
-        logger1.critical('Show command for a group that is not in the topology. Stopping'.format(grp))
+        logger1.critical('Show command for a device that is not in the topology. Stopping')
 
     except FwMgmt.InvalidTopology:
         logger1.critical('No proper / empty topology. Stopping...')

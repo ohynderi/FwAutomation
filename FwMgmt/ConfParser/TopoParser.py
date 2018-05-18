@@ -41,7 +41,7 @@ class TopoParser(ConfigParser):
                     self._instruction[device].append(cmd)
 
                 else:
-                    raise InvalidGrp('Device {0} is not in the topology'.format(grp))
+                    raise InvalidGrp('Device {0} is not in the topology'.format(device))
 
         else:
             raise InvalidCmd('This is not a show command')
