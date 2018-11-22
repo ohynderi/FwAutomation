@@ -28,6 +28,53 @@ class ConfigParser:
     def __init__(self):
         self._topology = dict()
         self._instruction = dict()
+        self._delegation_networks = dict()
+
+
+    def _variable_replacement(self, cmd_set, site_id):
+
+        new_cmd_set = list()
+
+        if site_id in self._delegation_networks.keys():
+            for cmd in cmd_set:
+                for var in self._delegation_networks[site_id].keys():
+
+                    if re.search(var, cmd) and self._delegation_networks[site_id][var] != 'unknown':
+                        cmd = re.sub(var, self._delegation_networks[site_id][var], cmd)
+
+                new_cmd_set.append(cmd)
+
+        else:
+            logger1.warning('No variables know for site {0}'.format(site_id))
+            new_cmd_set = cmd_set
+
+        return new_cmd_set
+
+
+    def load_delegation_networks(self, fd):
+
+        csv_fd = csv.reader(fd, delimiter=',')
+
+        header = None
+
+        for row, line in enumerate(csv_fd):
+            if not re.match('[0-9]+', line[0]):
+                # This is the CSV header
+                header = line[1:]
+
+            else:
+                if header != None:
+
+                    site_id = line[0]
+                    self._delegation_networks[site_id] = dict()
+
+                    for column, el in enumerate(line[1:]):
+                        self._delegation_networks[site_id][header[column]] = el
+
+                        logger1.debug('{0} set to {1} for site {2}'.format(header[column], el, site_id))
+
+                else:
+                    logger1.critical('No proper header in the CSV file. Can process line {0}'.format(line))
 
 
     def load_topology(self, fd):
@@ -36,9 +83,13 @@ class ConfigParser:
         This function loads the topology into the object internal structure.
 
         The topology is csv file with:
-            line 0: firewall hostname:
-            line 3: the site id
-            line 4: the fw management ip
+            column 0: firewall hostname:
+            column 3: the site id
+            column 4: the fw management ip
+            column 5: LAN-18 subnet
+            column 6: LAN-96 subnet
+            column 7: LAN-97 subnet
+            column 8: LAN-98 subnet
 
         Args:
             fd: topology file descriptor
@@ -64,6 +115,7 @@ class ConfigParser:
                     self._topology[hostname] = dict()
                     self._topology[hostname]['id'] = site_id
                     self._topology[hostname]['ip'] = ip
+
                 else:
                     logger1.debug('Hostname at line {0} already in the topology db. Skipping'.format(row +1))
             else:
@@ -121,7 +173,10 @@ class ConfigParser:
                 for device in devices:
                     if device in self._topology.keys():
                         logger1.debug('Adding instruction set to device {0}'.format(device))
-                        self._instruction[device] = list_to_command_set(commands, self._topology[device]['id'])
+
+                        instruction_after_swapping_site_id = list_to_command_set(commands, self._topology[device]['id'])
+                        instruction_after_swapping_var = self._variable_replacement(instruction_after_swapping_site_id, self._topology[device]['id'])
+                        self._instruction[device] = instruction_after_swapping_var
 
                     else:
                         logger1.debug('Device {0} doesnt exist in the topology. Skipping...'.format(device))
@@ -158,82 +213,16 @@ class ConfigParser:
                 raise MalformFile('instruction file', row + 1)
 
 
-        '''
-        for row, line in enumerate(fd):
-            if line.lstrip() == '' and not device_flag and not command_flag:
-                # Empty line between block. Skipping
-                logger1.debug("Line {0} of instruction file empty. Skipping...".format(row + 1))
-
-            elif line.strip() == '' and device_flag and command_flag:
-                # Empty line following a block. Hence exiting the block
-                logger1.debug('Exiting instruction bloc')
-                device_flag = False
-                command_flag = False
-
-                for device in devices:
-                    if device in self._topology.keys() and self._topology[device]['id'] not in site_ids:
-                        logger1.debug('Adding instruction set to device {0}'.format(device))
-                        self._instruction[device] = list_to_command_set(commands, self._topology[device]['id'])
-
-                    else:
-                        logger1.debug('Device {0} doesnt exist in the topology. Skipping...'.format(device))
-
-                devices = list()
-                commands = list()
-
-            elif re.match('devices:',line) and device_flag and command_flag:
-                # New device statement. Hence exiting the block and entering a new one
-                logger1.debug('Exiting instruction bloc')
-                command_flag = False
-
-                # Previous block processing
-                for device in devices:
-                    if device in self._topology.keys():
-                        logger1.debug('Adding instruction set to device {0}'.format(device))
-                        self._instruction[device] = list_to_command_set(commands, self._topology[device]['id'])
-
-                    else:
-                        logger1.debug('Device {0} doesnt exist in the topology. Skipping...'.format(device))
-
-                # New block processing
-                logger1.debug('Entering new block')
-                commands = list()
-
-                if re.search('all_devices', line):
-                    devices = self._topology.keys()
-                else:
-                    devices = str_to_device_list(line)
-
-            elif re.match('devices:',line) and not device_flag and not command_flag:
-                # Device statement and we are not in a block.
-                logger1.debug('Entering instruction block')
-                device_flag = True
-
-                if re.search('all_devices', line):
-                    devices = self._topology.keys()
-                else:
-                    devices = str_to_device_list(line)
-
-            elif re.match('commands:',line) and device_flag and not command_flag:
-                # command statement and we are in a block
-                command_flag = True
-
-            elif device_flag and command_flag and (re.match('[set|del|insert].*', line.lstrip())):
-                # Instruction part part of a block
-                logger1.debug('Adding instruction "{0}" to instruction set'.format(line.lstrip().rstrip()))
-                commands.append(line.lstrip().rstrip())
-
-            else:
-                raise MalformFile('instruction file', row + 1)
-                
-        '''
-
         # EOF reached. Processing last block
         if device_flag and command_flag:
             for device in devices:
                 if device in self._topology.keys():
                     logger1.debug('Adding instruction set to device {0}'.format(device))
-                    self._instruction[device] = list_to_command_set(commands, self._topology[device]['id'])
+
+                    instruction_after_swapping_site_id = list_to_command_set(commands, self._topology[device]['id'])
+                    instruction_after_swapping_var = self._variable_replacement(instruction_after_swapping_site_id,
+                                                                                self._topology[device]['id'])
+                    self._instruction[device] = instruction_after_swapping_var
                 else:
                     logger1.debug('Device {0} doesnt exist in the topology. Skipping...'.format(device))
 

@@ -61,7 +61,7 @@ def show_cmd(cmd, devices, topology_file):
         raise
 
 
-def set_cmd(instruction_file, topology_file):
+def set_cmd(instruction_file, topology_file, network_file):
 
     username = input('Please enter a username: ')
     password = input('Please enter corresponding password: ')
@@ -73,9 +73,12 @@ def set_cmd(instruction_file, topology_file):
         with open(getcwd() + topology_file) as fd_topology:
             parser1.load_topology(fd_topology)
 
+        with open(getcwd() + network_file) as fd_network:
+            parser1.load_delegation_networks(fd_network)
 
         with open(getcwd() + instruction_file) as fd_instruction:
             parser1.load_instruction(fd_instruction)
+
 
         #parser1.print_topology()
         parser1.print_instruction()
@@ -111,6 +114,8 @@ def main():
     parser.add_argument('-d', action='store', dest='devices', help='Comma separate device list. To be used in combination with -c. Eg: hostname1, hostname2')
     parser.add_argument('-i', action='store', dest='instruction_file', help='By default: /Config/instruction.csv', default='/Config/instructions.csv')
     parser.add_argument('-t', action='store', dest='topology_file', help='By default: /Config/topology.csv', default='/Config/topology.csv')
+    parser.add_argument('-n', action='store', dest='network_file', help='By default: /Config/delegation_networks.csv', default='/Config/delegation_networks.csv')
+
 
     archive_log_files()
     parser_result = parser.parse_args()
@@ -125,7 +130,7 @@ def main():
         logger1.critical('missing -c argument. Stopping...')
 
     else:
-        set_cmd(parser_result.instruction_file, parser_result.topology_file)
+        set_cmd(parser_result.instruction_file, parser_result.topology_file, parser_result.network_file)
 
 
 if __name__ == '__main__':
