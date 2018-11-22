@@ -86,10 +86,6 @@ class ConfigParser:
             column 0: firewall hostname:
             column 3: the site id
             column 4: the fw management ip
-            column 5: LAN-18 subnet
-            column 6: LAN-96 subnet
-            column 7: LAN-97 subnet
-            column 8: LAN-98 subnet
 
         Args:
             fd: topology file descriptor
