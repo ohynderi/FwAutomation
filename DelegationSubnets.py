@@ -53,6 +53,9 @@ class Topology:
                 LAN_98_NAME = self._extract_name(line)
 
         if site_id != 'unknown':
+
+            logger1.debug('Networks for delegation {0} found'.format(site_id))
+
             self.topology[site_id] = {'LAN-18-NETW' : LAN_18_NETW}
             self.topology[site_id]['LAN-18-NAME'] = LAN_18_NAME
             self.topology[site_id]['LAN-96-NETW'] = LAN_96_NETW
@@ -64,7 +67,6 @@ class Topology:
             self.topology[site_id]['LAN-98-NETW'] = LAN_98_NETW
             self.topology[site_id]['LAN-98-NAME'] = LAN_98_NAME
 
-        print(self.topology[site_id]['LAN-18-NETW'])
 
     def write_result(self, file):
 
@@ -76,13 +78,16 @@ class Topology:
 
         for site in sorted(self.topology.keys()):
 
+            logger1.debug('Writing result for site {0}'.format(site))
+
             tmp_list = list()
             tmp_list.append(site)
 
             for key in sorted(self.topology[site].keys()):
                 tmp_list.append(self.topology[site][key])
 
-        csv_fd.writerow(tmp_list)
+            csv_fd.writerow(tmp_list)
+
         fd.close()
 
 
@@ -104,7 +109,7 @@ def main():
             with open(join(parser_result.dir, file), 'r') as fd:
                 topo.add_delegation(fd)
 
-    topo.write_result(join(parser_result.dir, 'delegation_networks.csv'))
+    topo.write_result(join('Config', 'delegation_networks.csv'))
 
 
 if __name__ == '__main__':
