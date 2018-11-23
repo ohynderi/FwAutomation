@@ -71,6 +71,7 @@ class Topology:
             self.topology[site_id]['LAN-98-NAME'] = LAN_98_NAME
 
 
+
     def write_result(self, file):
 
         fd = open(file, 'w')
