@@ -15,8 +15,8 @@ class Topology:
 
         return subnet
 
-    def _extract_name(self, s):
-        name = re.search('[0-9]+\.[0-9]+\.[0-9]+', s).group() + '.0_' + re.search('/[0-9]+',s).group()[1:]
+    def _extract_name(self, lan_id, s):
+        name = 'LAN-' + str(lan_id) + '-' + re.search('[0-9]+\.[0-9]+\.[0-9]+', s).group() + '.0_' + re.search('/[0-9]+',s).group()[1:]
 
         return name
 
@@ -29,6 +29,7 @@ class Topology:
         LAN_97_NETW = 'unknown'
         LAN_98_NETW = 'unknown'
         HOST_LAN_96_NETW = 'unknown'
+        LAN_96_HOST_NAME = 'unknown'
         LAN_18_NAME = 'unknown'
         LAN_96_NAME = 'unknown'
         LAN_97_NAME = 'unknown'
@@ -38,19 +39,20 @@ class Topology:
         for line in fd:
             if re.match('reth0\.18', line):
                 LAN_18_NETW = self._extract_subnet(line)
-                LAN_18_NAME = self._extract_name(line)
+                LAN_18_NAME = self._extract_name(18, line)
             if re.match('reth0\.96', line):
                 LAN_96_NETW = self._extract_subnet(line)
-                LAN_96_NAME = self._extract_name(line)
+                LAN_96_NAME = self._extract_name(96, line)
                 HOST_LAN_96_NETW = re.match('[0-9]+\.[0-9]+\.[0-9]+', LAN_96_NETW).group() + '.28' + '/32'
-                HOST_LAN_96_NAME = re.match('[0-9]+\.[0-9]+\.[0-9]+', LAN_96_NETW).group() + '.28' + '_32'
+                HOST_LAN_96_NAME = 'HOST-LAN-96-' + re.match('[0-9]+\.[0-9]+\.[0-9]+', LAN_96_NETW).group() + '.28' + '_32'
+                LAN_96_HOST_NAME = 'LAN-96-HOST-' + re.match('[0-9]+\.[0-9]+\.[0-9]+', LAN_96_NETW).group() + '.28' + '_32'
                 site_id = LAN_96_NETW.split('.')[2]
             if re.match('reth0\.97', line):
                 LAN_97_NETW = self._extract_subnet(line)
-                LAN_97_NAME = self._extract_name(line)
+                LAN_97_NAME = self._extract_name(97, line)
             if re.match('reth0\.98', line):
                 LAN_98_NETW = self._extract_subnet(line)
-                LAN_98_NAME = self._extract_name(line)
+                LAN_98_NAME = self._extract_name(98, line)
 
         if site_id != 'unknown':
 
@@ -62,6 +64,7 @@ class Topology:
             self.topology[site_id]['LAN-96-NAME'] = LAN_96_NAME
             self.topology[site_id]['HOST-LAN-96-NETW'] = HOST_LAN_96_NETW
             self.topology[site_id]['HOST-LAN-96-NAME'] = HOST_LAN_96_NAME
+            self.topology[site_id]['LAN-96-HOST-NAME'] = LAN_96_HOST_NAME
             self.topology[site_id]['LAN-97-NETW'] = LAN_97_NETW
             self.topology[site_id]['LAN-97-NAME'] = LAN_97_NAME
             self.topology[site_id]['LAN-98-NETW'] = LAN_98_NETW
