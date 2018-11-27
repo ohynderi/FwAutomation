@@ -22,7 +22,7 @@ optional arguments:
                        with -c. Eg: hostname1, hostname2
   -i INSTRUCTION_FILE  By default: /Config/instruction.csv
   -t TOPOLOGY_FILE     By default: /Config/topology.csv
-  -v VARIABLE_FILE      By default: /Config/variable.csv
+  -v VARIABLE_FILE     By default: /Config/variable.csv
   ```
 
 
@@ -128,7 +128,19 @@ EwsFwMgmt.py -c "show interfaces terse" -d "BELBRU,BELANT"
 EwsFwMgmt.py -c "show interfaces terse" -d "all_devices"
 ```
 
-For each firewall, a separate task will be generate. Task output is redirected to Log/Task-<id>
+For each firewall, a separate task is generated. Task output is redirected to Log/Task-<id>
+```
+python3.4 EwsFwMgmt.py -c "show interfaces terse" -d "BELBRU,BELANT"
+2018-11-27 17:22:46,098 - __main__ - WARNING - Archiving previous log file
+Please enter a username: user1
+Please enter corresponding password:
+2018-11-27 17:22:54,557 - __main__ - WARNING - Requesting "show interfaces terse" from BELBRU,BELANT
+2018-11-27 17:22:54,560 - TaskEngine - WARNING - Start Running tasks...
+2018-11-27 17:22:54,560 - ConfigParser - WARNING - Creating Task-1 for BELBRU
+2018-11-27 17:22:54,562 - ConfigParser - WARNING - Creating Task-2 for BELANT
+2018-11-27 17:23:04,510 - TaskEngine - WARNING - Task-1: Successfully completed
+2018-11-27 17:23:15,010 - TaskEngine - WARNING - Task-2: Successfully completed
+```
 
 ### set command
 
@@ -138,4 +150,18 @@ EwsFwMgmt.py -i instruction.txt -t topology.csv -v variables.csv
 EwsFwMgmt.py
 ```
 
-## Execution Examples
+For each firewall, a separate task is generated. Task output is redirected to Log/Task-<id>
+```
+python3.4 EwsFwMgmt.py
+Please enter a username: user1
+Please enter corresponding password:
+---------------- Loaded Instructions ----------------
+BELBRU
+        set security address-book ZONE1 address LAN1 10.0.0.0/24
+---------------- Loaded Instructions ----------------
+Ready to proceed? [Y|N]
+y
+2018-11-27 16:27:30,452 - TaskEngine - WARNING - Start Running tasks...
+2018-11-27 16:27:30,453 - ConfigParser - WARNING - Creating Task-1 for BELBRU
+2018-11-27 16:27:32,473 - TaskEngine - WARNING - Task-1: ConnectAuthError(192.168.1.1)
+```
