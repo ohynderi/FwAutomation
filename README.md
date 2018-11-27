@@ -57,7 +57,7 @@ set_commands:
  whatever you have in mind
 ```
 
-Important remark:
+Important remarks:
 1. The script takes care of going in configuration mode and committing the changes. Hence configuration and commit must not be part of the command set.
 2. Devices is a coma separated list of Hostname (see topology file)
 3. The all_devices token can be used instead of a device list. So "devices: all_devices". In that case, the set_commands are applied to all firewall part of the topology file. 
