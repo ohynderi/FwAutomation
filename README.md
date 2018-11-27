@@ -116,3 +116,26 @@ set security address-book my_zone address end_user_subnet2 10.1.1.0/24
 set security address-book my_zone address end_user_subnet1 10.2.0.0/24
 set security address-book my_zone address end_user_subnet2 10.2.1.0/24
 ```
+
+# Script Execution
+## Mode
+### show command
+
+See below how to run a show command on a list of firewall
+
+```
+EwsFwMgmt.py -c "show interfaces terse" -d "BELBRU,BELANT"
+EwsFwMgmt.py -c "show interfaces terse" -d "all_devices"
+```
+
+For each firewall, a separate task will be generate. Task output is redirected to Log/Task-<id>
+
+### set command
+
+See below how to apply commands to a list of firewalls.
+```
+EwsFwMgmt.py -i instruction.txt -t topology.csv -v variables.csv
+EwsFwMgmt.py
+```
+
+## Execution Examples
