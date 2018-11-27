@@ -12,7 +12,7 @@ Regardless of the mode, the script creates a different task per firewall, and ru
 ```
 EwsFwMgmt.py --help
 usage: EwsFwMgmt.py [-h] [-c SHOW_COMMAND] [-d DEVICES] [-i INSTRUCTION_FILE]
-                    [-t TOPOLOGY_FILE] [-n NETWORK_FILE]
+                    [-t TOPOLOGY_FILE] [-v VARIABLE_FILE]
 
 optional arguments:
   -h, --help           show this help message and exit
@@ -22,12 +22,12 @@ optional arguments:
                        with -c. Eg: hostname1, hostname2
   -i INSTRUCTION_FILE  By default: /Config/instruction.csv
   -t TOPOLOGY_FILE     By default: /Config/topology.csv
-  -n NETWORK_FILE      By default: /Config/delegation_networks.csv
+  -v VARIABLE_FILE      By default: /Config/variable.csv
   ```
   
 ## Configuration Files
 ### The Topology File
-This is a csv file that lists the different sites and corresponding site ID and FW management IP address.
+This is a CSV file that lists the different sites and corresponding site ID and FW management IP address.
 
 Syntax of the file is the following:
 ```
@@ -39,8 +39,8 @@ BELANT,Antwerp,Belgium,2,192.168.2.1,
 The default location for this file is Config/topology.csv
 
 ### The instruction file
-This file defines a set of instruction to be applied on a list of firewalls.   
-When running in "set command" mode, the script parses this file and apply the commands under the set_commands section to the firewalls part of the devices list.  
+This file defines a set of instruction to be applied to a list of firewalls.   
+When running in "set command" mode, the script parses this file and apply the instructions under the set_commands section to the firewalls in the devices list.  
 
 Syntax of the file is the following:
 ```
@@ -58,7 +58,11 @@ set_commands:
 ```
 
 Important remarks:
-1. The script takes care of going in configuration mode and committing the changes. Hence configuration and commit must not be part of the command set.
-2. Devices is a coma separated list of Hostname (see topology file)
-3. The all_devices token can be used instead of a device list. So "devices: all_devices". In that case, the set_commands are applied to all firewall part of the topology file. 
+1. The script takes care of going in configuration mode as well as committing the changes. Hence configuration and commit must not be part of the command set.
+2. Devices is a coma separated list of Hostname (see first column in the topology file)
+3. **all_devices** can be used in replacement of a device list. So "devices: all_devices". In that case, the set_commands are applied to all firewall listed in the topology file. 
 
+The default location for this file is Config/instruction.csv
+
+### The Variable File
+This is a CSV file that list, for 
