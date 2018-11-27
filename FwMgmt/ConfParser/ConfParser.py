@@ -37,7 +37,8 @@ class ConfigParser:
 
         if site_id in self._delegation_networks.keys():
             for cmd in cmd_set:
-                for var in self._delegation_networks[site_id].keys():
+                for var in sorted(self._delegation_networks[site_id].keys(), key=lambda item: (-len(item), item)):
+                    print(var)
 
                     if re.search(var, cmd) and self._delegation_networks[site_id][var] != 'unknown':
                         cmd = re.sub(var, self._delegation_networks[site_id][var], cmd)
@@ -196,7 +197,7 @@ class ConfigParser:
                 else:
                     devices = str_to_device_list(line)
 
-            elif re.match('commands:', line) and device_flag and not command_flag:
+            elif re.match('set_commands:', line) and device_flag and not command_flag:
                 # command statement and we are in a block
                 command_flag = True
 
