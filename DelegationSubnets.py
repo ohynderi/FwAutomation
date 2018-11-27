@@ -45,7 +45,7 @@ class Topology:
                 LAN_96_NAME = self._extract_name(96, line)
                 HOST_LAN_96_NETW = re.match('[0-9]+\.[0-9]+\.[0-9]+', LAN_96_NETW).group() + '.28' + '/32'
                 HOST_LAN_96_NAME = 'HOST-LAN-96-' + re.match('[0-9]+\.[0-9]+\.[0-9]+', LAN_96_NETW).group() + '.28' + '_32'
-                LAN_96_HOST_NAME = 'LAN-96-HOST-NAME-' + re.match('[0-9]+\.[0-9]+\.[0-9]+', LAN_96_NETW).group() + '.28'
+                LAN_96_HOST_NAME = 'LAN-96-HOST-' + re.match('[0-9]+\.[0-9]+\.[0-9]+', LAN_96_NETW).group() + '.28'
                 site_id = LAN_96_NETW.split('.')[2]
             if re.match('reth0\.97', line):
                 LAN_97_NETW = self._extract_subnet(line)
