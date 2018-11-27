@@ -87,9 +87,9 @@ def set_cmd(instruction_file, topology_file, network_file):
         #parser1.print_topology()
         parser1.print_instruction()
 
-        confirmation = input('Ready to proceed? [Y|N]')
+        confirmation = input('Ready to proceed? [Y|N]\n')
 
-        if confirmation == ('Y' or 'y'):
+        if confirmation in ['Y','y']:
             task_gen = (FwMgmt.NetconfTask(getcwd() + '/Log/', '', device, username, password, cmd_set)
                     for device, cmd_set in iter(parser1))
             FwMgmt.task_engine(task_gen)
