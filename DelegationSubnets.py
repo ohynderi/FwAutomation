@@ -111,7 +111,7 @@ def main():
             with open(join(parser_result.dir, file), 'r') as fd:
                 topo.add_delegation(fd)
 
-    topo.write_result(join('Config', 'delegation_networks.csv'))
+    topo.write_result(join('Config', 'variable.csv'))
 
 
 if __name__ == '__main__':

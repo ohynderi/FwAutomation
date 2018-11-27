@@ -8,6 +8,7 @@ import argparse
 import zipfile
 import re
 import time
+import getpass
 
 def archive_log_files():
 
@@ -29,7 +30,9 @@ def archive_log_files():
 def show_cmd(cmd, devices, topology_file):
 
     username = input('Please enter a username: ')
-    password = input('Please enter corresponding password: ')
+    #password = input('Please enter corresponding password: ')
+    password = getpass.getpass(prompt='Please enter corresponding password: ')
+
 
     try:
         logger1.warning('Requesting "{0}" from {1}'.format(cmd, devices))
@@ -64,7 +67,8 @@ def show_cmd(cmd, devices, topology_file):
 def set_cmd(instruction_file, topology_file, network_file):
 
     username = input('Please enter a username: ')
-    password = input('Please enter corresponding password: ')
+    #password = input('Please enter corresponding password: ')
+    password = getpass.getpass(prompt='Please enter corresponding password: ')
 
     try:
 
@@ -114,7 +118,7 @@ def main():
     parser.add_argument('-d', action='store', dest='devices', help='Comma separate device list. To be used in combination with -c. Eg: hostname1, hostname2')
     parser.add_argument('-i', action='store', dest='instruction_file', help='By default: /Config/instruction.csv', default='/Config/instructions.csv')
     parser.add_argument('-t', action='store', dest='topology_file', help='By default: /Config/topology.csv', default='/Config/topology.csv')
-    parser.add_argument('-n', action='store', dest='network_file', help='By default: /Config/delegation_networks.csv', default='/Config/delegation_networks.csv')
+    parser.add_argument('-v', action='store', dest='variable_file', help='By default: /Config/variable.csv', default='/Config/variable.csv')
 
 
     archive_log_files()
@@ -130,7 +134,7 @@ def main():
         logger1.critical('missing -c argument. Stopping...')
 
     else:
-        set_cmd(parser_result.instruction_file, parser_result.topology_file, parser_result.network_file)
+        set_cmd(parser_result.instruction_file, parser_result.topology_file, parser_result.variable_file)
 
 
 if __name__ == '__main__':
