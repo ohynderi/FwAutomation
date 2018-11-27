@@ -80,5 +80,39 @@ Important remarks:
 Default file location: Config/instruction.csv
 
 ### The Variable File
-This is a CSV file that defines some variables and corresponding values for each site.  
-The variable names is given by the CSV header. When generating a task for a specific site, the script replaces matching variables in the command set by the corresponding value for the site. 
+This is a CSV file that defines some variables and corresponding values for each site. The variable names is given by the CSV header.   
+When generating a task for a specific site, the script replaces matching variables in the command set by the corresponding value for the site. 
+
+File syntax is the following:
+```
+site id,variable1, variable2, variable3, .... variable<n>
+1,site1_value1,site1_value2,site1_value3,.... site1_value<n> 
+2,site2_value1,site2_value2,site2_value3,.... site2_value<n> 
+```
+Site id must match the topology file.
+
+So for instance:
+```
+site id,hostname,network1, network2
+1,FW_BELBRU,10.1.0.0/24,10.1.1.0/24
+2,FW_BELANT,10.2.0.0/24,10.2.1.0/24
+```
+
+Those variable can then later be used in the instruction file.
+```
+devices: all_devices
+set_commands:
+ set security address-book my_zone address end_user_subnet1 network1
+ set security address-book my_zone address end_user_subnet2 network2
+```
+
+This will generate task for BELBRU with below instruction set:
+```
+set security address-book my_zone address end_user_subnet1 10.1.0.0/24
+set security address-book my_zone address end_user_subnet2 10.1.1.0/24
+```
+...same for BELANT:
+```
+set security address-book my_zone address end_user_subnet1 10.2.0.0/24
+set security address-book my_zone address end_user_subnet2 10.2.1.0/24
+```
