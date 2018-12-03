@@ -22,7 +22,7 @@ optional arguments:
                        with -c. Eg: hostname1, hostname2
   -i INSTRUCTION_FILE  By default: /Config/instruction.csv
   -t TOPOLOGY_FILE     By default: /Config/topology.csv
-  -v VARIABLE_FILE      By default: /Config/variable.csv
+  -v VARIABLE_FILE     By default: /Config/variable.csv
   ```
 
 
@@ -80,5 +80,88 @@ Important remarks:
 Default file location: Config/instruction.csv
 
 ### The Variable File
-This is a CSV file that defines some variables and corresponding values for each site.  
-The variable names is given by the CSV header. When generating a task for a specific site, the script replaces matching variables in the command set by the corresponding value for the site. 
+This is a CSV file that defines some variables and corresponding values for each site. The variable names is given by the CSV header.   
+When generating a task for a specific site, the script replaces matching variables in the command set by the corresponding value for the site. 
+
+File syntax is the following:
+```
+site id,variable1, variable2, variable3, .... variable<n>
+1,site1_value1,site1_value2,site1_value3,.... site1_value<n> 
+2,site2_value1,site2_value2,site2_value3,.... site2_value<n> 
+```
+Site id must match the topology file.
+
+So for instance:
+```
+site id,hostname,network1, network2
+1,FW_BELBRU,10.1.0.0/24,10.1.1.0/24
+2,FW_BELANT,10.2.0.0/24,10.2.1.0/24
+```
+
+Those variable can then later be used in the instruction file.
+```
+devices: all_devices
+set_commands:
+ set security address-book my_zone address end_user_subnet1 network1
+ set security address-book my_zone address end_user_subnet2 network2
+```
+
+This will generate task for BELBRU with below instruction set:
+```
+set security address-book my_zone address end_user_subnet1 10.1.0.0/24
+set security address-book my_zone address end_user_subnet2 10.1.1.0/24
+```
+...same for BELANT:
+```
+set security address-book my_zone address end_user_subnet1 10.2.0.0/24
+set security address-book my_zone address end_user_subnet2 10.2.1.0/24
+```
+
+# Script Execution
+## Mode
+### show command
+
+See below how to run a show command on a list of firewall
+
+```
+EwsFwMgmt.py -c "show interfaces terse" -d "BELBRU,BELANT"
+EwsFwMgmt.py -c "show interfaces terse" -d "all_devices"
+```
+
+For each firewall, a separate task is generated. Task output is redirected to Log/Task-<id>
+```
+python3.4 EwsFwMgmt.py -c "show interfaces terse" -d "BELBRU,BELANT"
+2018-11-27 17:22:46,098 - __main__ - WARNING - Archiving previous log file
+Please enter a username: user1
+Please enter corresponding password:
+2018-11-27 17:22:54,557 - __main__ - WARNING - Requesting "show interfaces terse" from BELBRU,BELANT
+2018-11-27 17:22:54,560 - TaskEngine - WARNING - Start Running tasks...
+2018-11-27 17:22:54,560 - ConfigParser - WARNING - Creating Task-1 for BELBRU
+2018-11-27 17:22:54,562 - ConfigParser - WARNING - Creating Task-2 for BELANT
+2018-11-27 17:23:04,510 - TaskEngine - WARNING - Task-1: Successfully completed
+2018-11-27 17:23:15,010 - TaskEngine - WARNING - Task-2: Successfully completed
+```
+
+### set command
+
+See below how to apply commands to a list of firewalls.
+```
+EwsFwMgmt.py -i instruction.txt -t topology.csv -v variables.csv
+EwsFwMgmt.py
+```
+
+For each firewall, a separate task is generated. Task output is redirected to Log/Task-<id>
+```
+python3.4 EwsFwMgmt.py
+Please enter a username: user1
+Please enter corresponding password:
+---------------- Loaded Instructions ----------------
+BELBRU
+        set security address-book ZONE1 address LAN1 10.0.0.0/24
+---------------- Loaded Instructions ----------------
+Ready to proceed? [Y|N]
+y
+2018-11-27 16:27:30,452 - TaskEngine - WARNING - Start Running tasks...
+2018-11-27 16:27:30,453 - ConfigParser - WARNING - Creating Task-1 for BELBRU
+2018-11-27 16:27:32,473 - TaskEngine - WARNING - Task-1: ConnectAuthError(192.168.1.1)
+```
