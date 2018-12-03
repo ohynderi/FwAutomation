@@ -71,12 +71,12 @@ class NetconfTask(Task):
             for line in self._cmd_set:
                 self._log("Applying {0}".format(line))
 
-                config1.load(line, format='set')
+                config1.load(line, format='set', mode='private', merge=True, ignore_warning=True)
 
 
             self._log("Committing changes")
 
-            config1.commit()
+            config1.commit(timeout=240)
 
             self._log("Retrieving config")
             self._log_fd.writelines(etree.tostring(device1.rpc.get_config(), encoding='unicode'))
